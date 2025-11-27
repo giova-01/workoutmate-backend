@@ -1,0 +1,56 @@
+# WorkoutMate API - Apache Configuration
+
+# Habilitar rewrite engine
+RewriteEngine On
+
+# Permitir acceso desde cualquier origen (CORS)
+Header always set Access-Control-Allow-Origin "*"
+Header always set Access-Control-Allow-Methods "POST, GET, PUT, DELETE, OPTIONS"
+Header always set Access-Control-Allow-Headers "Content-Type, Authorization, X-Master-Key"
+
+# Manejar preflight requests
+RewriteCond %{REQUEST_METHOD} OPTIONS
+RewriteRule ^(.*)$ $1 [R=200,L]
+
+# Redirigir al index.php si existe
+DirectoryIndex index.php
+
+# ============================================
+# RUTAS DE AUTENTICACIÓN
+# ============================================
+RewriteRule ^auth/login$ auth/login.php [L]
+RewriteRule ^auth/register$ auth/register.php [L]
+RewriteRule ^auth/logout$ auth/logout.php [L]
+RewriteRule ^auth/me/([a-zA-Z0-9-]+)$ auth/me.php [L]
+
+# ============================================
+# RUTAS DE WORKOUTS
+# ============================================
+RewriteRule ^workouts/create$ workouts/create.php [L]
+RewriteRule ^workouts/update$ workouts/update.php [L]
+RewriteRule ^workouts/user/([a-zA-Z0-9-]+)$ workouts/user.php [L]
+RewriteRule ^workouts/delete/([a-zA-Z0-9-]+)$ workouts/delete.php [L]
+RewriteRule ^workouts/share$ workouts/share.php [L]
+RewriteRule ^workouts/search$ workouts/search.php [L]
+
+# ============================================
+# RUTAS DE PROGRESS
+# ============================================
+RewriteRule ^progress/save$ progress/save.php [L]
+RewriteRule ^progress/history/([a-zA-Z0-9-]+)$ progress/history.php [L]
+RewriteRule ^progress/weekly/([a-zA-Z0-9-]+)$ progress/weekly.php [L]
+
+# ============================================
+# RUTAS DE ADMIN
+# ============================================
+RewriteRule ^admin/users$ admin/users.php [L]
+RewriteRule ^admin/user/([a-zA-Z0-9-]+)$ admin/delete_user.php [L]
+RewriteRule ^admin/report$ admin/create_report.php [L]
+RewriteRule ^admin/reports$ admin/reports.php [L]
+RewriteRule ^admin/report/status$ admin/update_report.php [L]
+
+# Prevenir acceso directo a archivos de configuración
+<FilesMatch "^(database|api_config)\.php$">
+    Order allow,deny
+    Deny from all
+</FilesMatch>
