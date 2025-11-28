@@ -2,13 +2,13 @@
 /**
  * WorkoutMate - Get User Workouts Endpoint
  * 
- * GET /workouts/user/:userId
+ * GET /workouts/list_by_user/:userId
  */
 
-require_once __DIR__ . '/../config/database.php';
-require_once __DIR__ . '/../config/api_config.php';
-require_once __DIR__ . '/../utils/Response.php';
-require_once __DIR__ . '/../utils/Validator.php';
+require_once '../config/database.php';
+require_once '../config/api_config.php';
+require_once '../utils/Response.php';
+require_once '../utils/Validator.php';
 
 ApiConfig::setHeaders();
 
@@ -25,8 +25,13 @@ if ($_SERVER['REQUEST_METHOD'] !== 'GET') {
 try {
     // Obtener userId desde la URL
     $requestUri = $_SERVER['REQUEST_URI'];
-    $uriParts = explode('/', $requestUri);
+    $uriParts = explode('/', trim($requestUri, '/'));
     $userId = end($uriParts);
+    
+    // Limpiar query string si existe
+    if (strpos($userId, '?') !== false) {
+        $userId = substr($userId, 0, strpos($userId, '?'));
+    }
 
     if (empty($userId)) {
         Response::badRequest('[WorkoutAPI] - ID de usuario requerido');
@@ -54,12 +59,12 @@ try {
                             CONCAT(
                                 '{',
                                 '\"id\":\"', e.id, '\",',
-                                '\"name\":\"', REPLACE(e.name, '\"', '\\\"'), '\",',
-                                '\"sets\":', e.sets, ',',
-                                '\"repetitions\":', e.repetitions, ',',
-                                '\"rest_time\":', e.rest_time, ',',
-                                '\"notes\":\"', REPLACE(e.notes, '\"', '\\\"'), '\",',
-                                '\"order_index\":', e.order_index,
+                                '\"name\":\"', REPLACE(REPLACE(e.name, '\"', '\\\\\"'), '\\n', ' '), '\",',
+                                '\"sets\":', COALESCE(e.sets, 0), ',',
+                                '\"repetitions\":', COALESCE(e.repetitions, 0), ',',
+                                '\"rest_time\":', COALESCE(e.rest_time, 0), ',',
+                                '\"notes\":\"', COALESCE(REPLACE(REPLACE(e.notes, '\"', '\\\\\"'), '\\n', ' '), ''), '\",',
+                                '\"order_index\":', COALESCE(e.order_index, 0),
                                 '}'
                             )
                             ORDER BY e.order_index SEPARATOR ','
@@ -80,10 +85,14 @@ try {
 
     $workouts = $stmt->fetchAll(PDO::FETCH_ASSOC);
 
-    // Convertir JSON text a array
+    // Convertir exercises de string a array
     foreach ($workouts as &$workout) {
-        $decoded = json_decode($workout['exercises'], true);
-        $workout['exercises'] = $decoded ?: [];
+        if ($workout['exercises'] === null || $workout['exercises'] === '') {
+            $workout['exercises'] = [];
+        } else {
+            $decoded = json_decode($workout['exercises'], true);
+            $workout['exercises'] = $decoded ?: [];
+        }
         $workout['is_public'] = (bool) $workout['is_public'];
     }
 

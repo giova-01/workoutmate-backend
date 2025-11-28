@@ -110,28 +110,59 @@ try {
         // Commit transacción
         $db->commit();
         
-        // Obtener el workout completo
-        $getWorkoutQuery = "SELECT w.*, 
-                           (SELECT JSON_ARRAYAGG(
-                               JSON_OBJECT(
-                                   'id', e.id,
-                                   'name', e.name,
-                                   'sets', e.sets,
-                                   'repetitions', e.repetitions,
-                                   'rest_time', e.rest_time,
-                                   'notes', e.notes,
-                                   'order_index', e.order_index
-                               )
-                           ) FROM exercises e WHERE e.workout_id = w.id ORDER BY e.order_index) as exercises
-                           FROM workouts w 
-                           WHERE w.id = :id";
+        // Obtener el workout completo usando GROUP_CONCAT (compatible con MariaDB)
+        $getWorkoutQuery = "
+            SELECT 
+                w.id,
+                w.user_id,
+                w.name,
+                w.category,
+                w.is_public,
+                w.share_link,
+                w.qr_code_path,
+                w.created_at,
+                w.updated_at,
+                (
+                    SELECT 
+                        CONCAT(
+                            '[',
+                            GROUP_CONCAT(
+                                CONCAT(
+                                    '{',
+                                    '\"id\":\"', e.id, '\",',
+                                    '\"name\":\"', REPLACE(REPLACE(e.name, '\"', '\\\\\"'), '\\n', ' '), '\",',
+                                    '\"sets\":', COALESCE(e.sets, 0), ',',
+                                    '\"repetitions\":', COALESCE(e.repetitions, 0), ',',
+                                    '\"rest_time\":', COALESCE(e.rest_time, 0), ',',
+                                    '\"notes\":\"', COALESCE(REPLACE(REPLACE(e.notes, '\"', '\\\\\"'), '\\n', ' '), ''), '\",',
+                                    '\"order_index\":', COALESCE(e.order_index, 0),
+                                    '}'
+                                )
+                                ORDER BY e.order_index SEPARATOR ','
+                            ),
+                            ']'
+                        )
+                    FROM exercises e 
+                    WHERE e.workout_id = w.id
+                ) AS exercises
+            FROM workouts w 
+            WHERE w.id = :id
+        ";
         
         $getStmt = $db->prepare($getWorkoutQuery);
         $getStmt->bindParam(":id", $workoutId);
         $getStmt->execute();
         
         $workout = $getStmt->fetch(PDO::FETCH_ASSOC);
-        $workout['exercises'] = json_decode($workout['exercises']);
+        
+        // Convertir exercises de string a array
+        if ($workout['exercises'] === null || $workout['exercises'] === '') {
+            $workout['exercises'] = [];
+        } else {
+            $decoded = json_decode($workout['exercises'], true);
+            $workout['exercises'] = $decoded ?: [];
+        }
+        $workout['is_public'] = (bool) $workout['is_public'];
         
         Response::created(['workout' => $workout], 'Rutina creada exitosamente');
         

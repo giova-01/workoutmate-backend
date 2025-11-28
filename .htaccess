@@ -28,10 +28,15 @@ RewriteRule ^auth/me/([a-zA-Z0-9-]+)$ auth/me.php [L]
 # ============================================
 RewriteRule ^workouts/create$ workouts/create.php [L]
 RewriteRule ^workouts/update$ workouts/update.php [L]
-RewriteRule ^workouts/user/([a-zA-Z0-9-]+)$ workouts/user.php [L]
+RewriteRule ^workouts/list_by_user/([a-zA-Z0-9-]+)$ workouts/list_by_user.php [L]
 RewriteRule ^workouts/delete/([a-zA-Z0-9-]+)$ workouts/delete.php [L]
 RewriteRule ^workouts/share$ workouts/share.php [L]
 RewriteRule ^workouts/search$ workouts/search.php [L]
+
+# ============================================
+# RUTAS DE EXERCISE
+# ============================================
+RewriteRule ^exercises/list_predefined$ exercises/list_predefined.php [L]
 
 # ============================================
 # RUTAS DE PROGRESS
