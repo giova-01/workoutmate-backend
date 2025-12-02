@@ -5,9 +5,9 @@
  * DELETE /workouts/delete/:workoutId
  */
 
-require_once '../../config/database.php';
-require_once '../../config/api_config.php';
-require_once '../../utils/Response.php';
+require_once '../config/database.php';
+require_once '../config/api_config.php';
+require_once '../utils/Response.php';
 
 ApiConfig::setHeaders();
 

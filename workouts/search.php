@@ -28,21 +28,33 @@ try {
     $category = isset($_GET['category']) ? $_GET['category'] : '';
     $userId = isset($_GET['user_id']) ? $_GET['user_id'] : '';
     
-    // Construir query SQL
+    // Construir query SQL (compatible con MariaDB)
     $sql = "SELECT w.id, w.name, w.category, w.user_id, w.is_public, 
                    w.created_at, w.updated_at,
                    u.first_name, u.last_name,
-                   (SELECT JSON_ARRAYAGG(
-                       JSON_OBJECT(
-                           'id', e.id,
-                           'name', e.name,
-                           'sets', e.sets,
-                           'repetitions', e.repetitions,
-                           'rest_time', e.rest_time,
-                           'notes', e.notes,
-                           'order_index', e.order_index
-                       )
-                   ) FROM exercises e WHERE e.workout_id = w.id ORDER BY e.order_index) as exercises
+                   (
+                       SELECT 
+                           CONCAT(
+                               '[',
+                               GROUP_CONCAT(
+                                   CONCAT(
+                                       '{',
+                                       '\"id\":\"', e.id, '\",',
+                                       '\"name\":\"', REPLACE(REPLACE(e.name, '\"', '\\\\\"'), '\\n', ' '), '\",',
+                                       '\"sets\":', COALESCE(e.sets, 0), ',',
+                                       '\"repetitions\":', COALESCE(e.repetitions, 0), ',',
+                                       '\"rest_time\":', COALESCE(e.rest_time, 0), ',',
+                                       '\"notes\":\"', COALESCE(REPLACE(REPLACE(e.notes, '\"', '\\\\\"'), '\\n', ' '), ''), '\",',
+                                       '\"order_index\":', COALESCE(e.order_index, 0),
+                                       '}'
+                                   )
+                                   ORDER BY e.order_index SEPARATOR ','
+                               ),
+                               ']'
+                           )
+                       FROM exercises e 
+                       WHERE e.workout_id = w.id
+                   ) as exercises
             FROM workouts w 
             INNER JOIN users u ON w.user_id = u.id
             WHERE w.is_public = true";
@@ -84,7 +96,12 @@ try {
     
     // Procesar resultados
     foreach ($workouts as &$workout) {
-        $workout['exercises'] = json_decode($workout['exercises']) ?: [];
+        if ($workout['exercises'] === null || $workout['exercises'] === '') {
+            $workout['exercises'] = [];
+        } else {
+            $decoded = json_decode($workout['exercises'], true);
+            $workout['exercises'] = $decoded ?: [];
+        }
         $workout['is_public'] = (bool) $workout['is_public'];
         $workout['author'] = [
             'first_name' => $workout['first_name'],

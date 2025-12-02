@@ -44,6 +44,7 @@ try {
     $query = "
         SELECT 
             w.id,
+            w.user_id,
             w.name,
             w.category,
             w.is_public,
@@ -58,13 +59,18 @@ try {
                         GROUP_CONCAT(
                             CONCAT(
                                 '{',
-                                '\"id\":\"', e.id, '\",',
-                                '\"name\":\"', REPLACE(REPLACE(e.name, '\"', '\\\\\"'), '\\n', ' '), '\",',
-                                '\"sets\":', COALESCE(e.sets, 0), ',',
-                                '\"repetitions\":', COALESCE(e.repetitions, 0), ',',
-                                '\"rest_time\":', COALESCE(e.rest_time, 0), ',',
-                                '\"notes\":\"', COALESCE(REPLACE(REPLACE(e.notes, '\"', '\\\\\"'), '\\n', ' '), ''), '\",',
-                                '\"order_index\":', COALESCE(e.order_index, 0),
+                                    '\"id\":\"', e.id, '\",',
+                                    '\"name\":\"', REPLACE(REPLACE(e.name, '\"', '\\\\\"'), '\\n', ' '), '\",',
+                                    '\"category\":\"', COALESCE(REPLACE(e.category, '\"', '\\\\\"'), ''), '\",',
+                                    '\"muscle_group\":\"', COALESCE(REPLACE(e.muscle_group, '\"', '\\\\\"'), ''), '\",',
+                                    '\"sets\":', COALESCE(e.sets, 0), ',',
+                                    '\"repetitions\":', COALESCE(e.repetitions, 0), ',',
+                                    '\"rest_time\":', COALESCE(e.rest_time, 0), ',',
+                                    '\"description\":\"', COALESCE(REPLACE(REPLACE(e.description, '\"', '\\\\\"'), '\\n', ' '), ''), '\",',
+                                    '\"difficulty\":\"', COALESCE(REPLACE(e.difficulty, '\"', '\\\\\"'), ''), '\",',
+                                    '\"equipment\":\"', COALESCE(REPLACE(e.equipment, '\"', '\\\\\"'), ''), '\",',
+                                    '\"order_index\":', COALESCE(e.order_index, 0), ',',
+                                    '\"created_at\":\"', e.created_at, '\"',
                                 '}'
                             )
                             ORDER BY e.order_index SEPARATOR ','
