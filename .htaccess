@@ -32,6 +32,8 @@ RewriteRule ^workouts/list_by_user/([a-zA-Z0-9-]+)$ workouts/list_by_user.php [L
 RewriteRule ^workouts/delete/([a-zA-Z0-9-]+)$ workouts/delete.php [L]
 RewriteRule ^workouts/share$ workouts/share.php [L]
 RewriteRule ^workouts/search$ workouts/search.php [L]
+RewriteRule ^workouts/get_by_share_link/([a-zA-Z0-9-]+)$ workouts/get_by_share_link.php [L]
+RewriteRule ^workouts/clone$ workouts/clone.php [L]
 
 # ============================================
 # RUTAS DE EXERCISE

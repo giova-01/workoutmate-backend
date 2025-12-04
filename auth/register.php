@@ -4,7 +4,6 @@
  * 
  * POST /auth/register
  */
-
 require_once '../config/database.php';
 require_once '../config/api_config.php';
 
@@ -26,8 +25,7 @@ try {
     $data = json_decode(file_get_contents("php://input"));
     
     // Validar datos requeridos
-    if (empty($data->email) || empty($data->password) || 
-        empty($data->first_name) || empty($data->last_name)) {
+    if (empty($data->email) || empty($data->password) || empty($data->first_name)) {
         ApiConfig::sendError(ApiConfig::RESPONSE_BAD_REQUEST, '[AuthAPI] - Todos los campos son requeridos');
     }
     
@@ -62,15 +60,14 @@ try {
     $hashedPassword = password_hash($data->password, PASSWORD_BCRYPT);
     
     // Insertar nuevo usuario
-    $insertQuery = "INSERT INTO users (id, email, password, first_name, last_name, role) 
-                    VALUES (:id, :email, :password, :first_name, :last_name, 'user')";
+    $insertQuery = "INSERT INTO users (id, email, password, first_name, role) 
+                    VALUES (:id, :email, :password, :first_name, 'user')";
     
     $insertStmt = $db->prepare($insertQuery);
     $insertStmt->bindParam(":id", $userId);
     $insertStmt->bindParam(":email", $data->email);
     $insertStmt->bindParam(":password", $hashedPassword);
     $insertStmt->bindParam(":first_name", $data->first_name);
-    $insertStmt->bindParam(":last_name", $data->last_name);
     
     if (!$insertStmt->execute()) {
         ApiConfig::sendError(ApiConfig::RESPONSE_SERVER_ERROR, '[AuthAPI] - Error al crear el usuario');
@@ -81,7 +78,6 @@ try {
         'id' => $userId,
         'email' => $data->email,
         'first_name' => $data->first_name,
-        'last_name' => $data->last_name,
         'role' => 'user'
     ];
     

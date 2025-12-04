@@ -86,9 +86,16 @@ try {
             $deleteStmt->bindParam(":workout_id", $data->id);
             $deleteStmt->execute();
             
-            // Insertar nuevos ejercicios
-            $exerciseQuery = "INSERT INTO exercises (id, workout_id, name, sets, repetitions, rest_time, notes, order_index) 
-                             VALUES (:id, :workout_id, :name, :sets, :repetitions, :rest_time, :notes, :order_index)";
+            // Insertar nuevos ejercicios (mismos campos que create.php)
+            $exerciseQuery = "INSERT INTO exercises (
+                id, workout_id, name, category, muscle_group, 
+                sets, repetitions, rest_time, description, difficulty, 
+                equipment, order_index
+            ) VALUES (
+                :id, :workout_id, :name, :category, :muscle_group,
+                :sets, :repetitions, :rest_time, :description, :difficulty,
+                :equipment, :order_index
+            )";
             
             $exerciseStmt = $db->prepare($exerciseQuery);
             
@@ -102,15 +109,27 @@ try {
                 $exerciseStmt->bindParam(":workout_id", $data->id);
                 $exerciseStmt->bindParam(":name", $exercise->name);
                 
+                // Nuevos campos con defaults
+                $category = isset($exercise->category) ? $exercise->category : null;
+                $muscle = isset($exercise->muscle_group) ? $exercise->muscle_group : null;
+                $desc = isset($exercise->description) ? $exercise->description : null;
+                $difficulty = isset($exercise->difficulty) ? $exercise->difficulty : null;
+                $equipment = isset($exercise->equipment) ? $exercise->equipment : null;
+                
+                $exerciseStmt->bindParam(":category", $category);
+                $exerciseStmt->bindParam(":muscle_group", $muscle);
+                $exerciseStmt->bindParam(":description", $desc);
+                $exerciseStmt->bindParam(":difficulty", $difficulty);
+                $exerciseStmt->bindParam(":equipment", $equipment);
+                
+                // Campos numéricos
                 $sets = isset($exercise->sets) ? intval($exercise->sets) : 1;
                 $reps = isset($exercise->repetitions) ? intval($exercise->repetitions) : 1;
                 $rest = isset($exercise->rest_time) ? intval($exercise->rest_time) : 60;
-                $notes = isset($exercise->notes) ? $exercise->notes : null;
                 
                 $exerciseStmt->bindParam(":sets", $sets, PDO::PARAM_INT);
                 $exerciseStmt->bindParam(":repetitions", $reps, PDO::PARAM_INT);
                 $exerciseStmt->bindParam(":rest_time", $rest, PDO::PARAM_INT);
-                $exerciseStmt->bindParam(":notes", $notes);
                 $exerciseStmt->bindParam(":order_index", $index, PDO::PARAM_INT);
                 
                 $exerciseStmt->execute();
@@ -119,7 +138,7 @@ try {
         
         $db->commit();
         
-        // Obtener workout actualizado (compatible con MariaDB)
+        // Obtener workout actualizado (misma query que create.php)
         $getWorkoutQuery = "
             SELECT 
                 w.id,
@@ -132,29 +151,32 @@ try {
                 w.created_at,
                 w.updated_at,
                 (
-                    SELECT 
-                        CONCAT(
-                            '[',
-                            GROUP_CONCAT(
-                                CONCAT(
-                                    '{',
-                                    '\"id\":\"', e.id, '\",',
-                                    '\"name\":\"', REPLACE(REPLACE(e.name, '\"', '\\\\\"'), '\\n', ' '), '\",',
-                                    '\"sets\":', COALESCE(e.sets, 0), ',',
-                                    '\"repetitions\":', COALESCE(e.repetitions, 0), ',',
-                                    '\"rest_time\":', COALESCE(e.rest_time, 0), ',',
-                                    '\"notes\":\"', COALESCE(REPLACE(REPLACE(e.notes, '\"', '\\\\\"'), '\\n', ' '), ''), '\",',
-                                    '\"order_index\":', COALESCE(e.order_index, 0),
-                                    '}'
-                                )
-                                ORDER BY e.order_index SEPARATOR ','
-                            ),
-                            ']'
-                        )
+                    SELECT CONCAT(
+                        '[',
+                        GROUP_CONCAT(
+                            CONCAT(
+                                '{',
+                                '\"id\":\"', e.id, '\",',
+                                '\"name\":\"', REPLACE(REPLACE(e.name, '\"','\\\\\"'), '\\n', ' '), '\",',
+                                '\"category\":\"', COALESCE(e.category,''), '\",',
+                                '\"muscle_group\":\"', COALESCE(e.muscle_group,''), '\",',
+                                '\"sets\":', COALESCE(e.sets,0), ',',
+                                '\"repetitions\":', COALESCE(e.repetitions,0), ',',
+                                '\"rest_time\":', COALESCE(e.rest_time,0), ',',
+                                '\"description\":\"', COALESCE(REPLACE(REPLACE(e.description,'\"','\\\\\"'), '\\n',' '),''), '\",',
+                                '\"difficulty\":\"', COALESCE(e.difficulty,''), '\",',
+                                '\"equipment\":\"', COALESCE(e.equipment,''), '\",',
+                                '\"order_index\":', COALESCE(e.order_index,0),
+                                '}'
+                            )
+                            ORDER BY e.order_index SEPARATOR ','
+                        ),
+                        ']'
+                    )
                     FROM exercises e 
                     WHERE e.workout_id = w.id
                 ) AS exercises
-            FROM workouts w 
+            FROM workouts w
             WHERE w.id = :id
         ";
         
@@ -163,14 +185,7 @@ try {
         $getStmt->execute();
         
         $workout = $getStmt->fetch(PDO::FETCH_ASSOC);
-        
-        // Convertir exercises de string a array
-        if ($workout['exercises'] === null || $workout['exercises'] === '') {
-            $workout['exercises'] = [];
-        } else {
-            $decoded = json_decode($workout['exercises'], true);
-            $workout['exercises'] = $decoded ?: [];
-        }
+        $workout['exercises'] = json_decode($workout['exercises'] ? $workout['exercises'] : '[]', true);
         $workout['is_public'] = (bool) $workout['is_public'];
         
         Response::success(['workout' => $workout], 'Rutina actualizada exitosamente');
